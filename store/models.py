@@ -18,7 +18,8 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     rating = models.DecimalField(max_digits=3, decimal_places=1)
     # total_ratings = models.IntegerField()
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    image = models.ImageField(upload_to='products/images', blank=True, null=True)
+   
 
     # Add this line to link product with category
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
