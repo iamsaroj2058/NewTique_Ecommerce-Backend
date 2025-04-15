@@ -23,6 +23,7 @@ class Product(models.Model):
 
     # Add this line to link product with category
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
+    description = models.TextField(default='No description yet')
 
     def __str__(self):
         return self.name
