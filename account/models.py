@@ -233,6 +233,8 @@ class CustomUserManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
+    
+    
 
     def create_superuser(self,email, password=None, **extra_fields): 
         extra_fields.setdefault('is_staff', True)
@@ -243,7 +245,9 @@ class CustomUser(AbstractUser):
     email = models.EmailField(max_length=200, unique=True)
     birthday = models.DateField(null=True, blank=True)
     username = models.CharField(max_length=200, null=True, blank=True)
-
+    full_name = models.CharField(max_length=255, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'

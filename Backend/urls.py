@@ -26,11 +26,13 @@ from knox import views as knox_views
 urlpatterns = [
     path("admin/", admin.site.urls),
     # path("about-us/", views.aboutUs),
+    # path("Login/", knox_views.LoginView(),name='knox_login'),
     path('store/', include('store.urls')), 
     path('account/', include('account.api.urls')), 
     path('logout/',knox_views.LogoutView.as_view(), name='knox_logout'), 
     path('logoutall/',knox_views.LogoutAllView.as_view(), name='knox_logoutall'), 
     path('api/password_reset/',include('django_rest_passwordreset.urls', namespace='password_reset')),
+    path("api/", include("account.api.urls")),
 ]
 
 if settings.DEBUG:

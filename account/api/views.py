@@ -5,6 +5,11 @@ from ..models import *
 from rest_framework.response import Response 
 from django.contrib.auth import get_user_model, authenticate
 from knox.models import AuthToken
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from knox.auth import TokenAuthentication
+from rest_framework.authentication import get_authorization_header
+from rest_framework import status
 
 User = get_user_model()
 
@@ -56,3 +61,28 @@ class UserViewset(viewsets.ViewSet):
         queryset = User.objects.all()
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
+    
+
+class VerifyTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get("token")
+        if not token:
+            return Response({"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.META['HTTP_AUTHORIZATION'] = f"Token {token}"
+
+        user_auth_tuple = TokenAuthentication().authenticate(request)
+        if user_auth_tuple is not None:
+            user, _ = user_auth_tuple
+            return Response({
+                "valid": True,
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.username,
+                }
+            })
+        else:
+            return Response({"valid": False, "error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
