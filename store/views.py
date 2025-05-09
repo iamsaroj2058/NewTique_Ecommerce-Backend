@@ -7,7 +7,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Product.objects.all()
-        category = self.request.query_params.get('category')
-        if category:
-            queryset = queryset.filter(category__name=category)
+        category_id = self.request.query_params.get('category_id')
+        if category_id:
+            queryset = queryset.filter(category__id=category_id)
         return queryset
