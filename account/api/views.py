@@ -57,10 +57,9 @@ class UserViewset(viewsets.ViewSet):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
-    def list(self,request):
-        queryset = User.objects.all()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        queryset= self.queryset.filter(email=self.request.user.email) 
+        return queryset
     
 
 class VerifyTokenView(APIView):
