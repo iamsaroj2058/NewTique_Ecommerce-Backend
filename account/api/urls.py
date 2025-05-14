@@ -11,7 +11,8 @@ router.register('users', UserViewset, basename='users')
 # First collect all router-generated URLs
 urlpatterns = router.urls
 
-# Then extend with custom URL(s)
+# Then extend with custom API views
 urlpatterns += [
     path('verify-token/', VerifyTokenView.as_view(), name='verify-token'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),  # ✅ Add this line
 ]
