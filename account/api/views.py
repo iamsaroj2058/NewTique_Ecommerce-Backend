@@ -26,10 +26,15 @@ class LoginViewset(viewsets.ViewSet):
             if user: 
                 _, token = AuthToken.objects.create(user)
                 return Response(
-                    {
-                        "user": self.serializer_class(user).data,
-                        "token": token
-                    }
+                {
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                        "name": user.full_name,
+                        "phone": str(user.phone)
+                    },
+                    "token": token
+                }
                 )
             else: 
                 return Response({"error":"Invalid credentials"}, status=401)    
