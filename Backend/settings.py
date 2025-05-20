@@ -167,12 +167,3 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ]
 }
-
-
-# settings.py
-
-ESEWA_MERCHANT_ID = 'your_merchant_id'
-ESEWA_SUCCESS_URL = 'http://localhost:3000/esewa/success'  # frontend route
-ESEWA_FAILURE_URL = 'http://localhost:3000/esewa/failure'  # frontend route
-ESEWA_PAYMENT_URL = 'https://uat.esewa.com.np/epay/main'
-ESEWA_VERIFY_URL = 'https://uat.esewa.com.np/epay/transrec'
