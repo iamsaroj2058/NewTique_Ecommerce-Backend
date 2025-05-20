@@ -157,3 +157,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'knox.auth.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ]
+}
+
+
+# settings.py
+
+ESEWA_MERCHANT_ID = 'your_merchant_id'
+ESEWA_SUCCESS_URL = 'http://localhost:3000/esewa/success'  # frontend route
+ESEWA_FAILURE_URL = 'http://localhost:3000/esewa/failure'  # frontend route
+ESEWA_PAYMENT_URL = 'https://uat.esewa.com.np/epay/main'
+ESEWA_VERIFY_URL = 'https://uat.esewa.com.np/epay/transrec'

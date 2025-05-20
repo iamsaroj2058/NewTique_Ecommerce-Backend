@@ -33,6 +33,7 @@ urlpatterns = [
     path('logoutall/',knox_views.LogoutAllView.as_view(), name='knox_logoutall'), 
     path('api/password_reset/',include('django_rest_passwordreset.urls', namespace='password_reset')),
     path("api/", include("account.api.urls")),
+    path('api/', include('store.urls')),
 ]
 
 if settings.DEBUG:
