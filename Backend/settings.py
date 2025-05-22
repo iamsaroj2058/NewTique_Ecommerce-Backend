@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -167,3 +168,11 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ]
 }
+
+
+# Esewa  credencials
+
+
+ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
+ESEWA_MERCHANT_CODE = "EPAYTEST"
+
