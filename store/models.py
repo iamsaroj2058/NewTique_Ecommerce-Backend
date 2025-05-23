@@ -31,11 +31,17 @@ class Review(models.Model):
         return f"Review by {self.user.email} on {self.product.name}"
 
 
+
 class Order(models.Model):
-    product_name = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, default="Pending")  # Pending, Paid, Failed
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_uuid = models.CharField(max_length=100, unique=True)
+    payment_ref_id = models.CharField(max_length=100, blank=True, null=True)
+    is_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default="Pending")  # Pending, Paid, Failed
+
 
     def __str__(self):
-        return f"{self.product_name} - {self.status}"
+        return f"Order #{self.id} - {self.user.email} - {'Paid' if self.is_paid else 'Unpaid'}"

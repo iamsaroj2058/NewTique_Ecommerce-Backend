@@ -9,6 +9,12 @@ import uuid
 import hmac
 import hashlib
 import base64
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .models import Order
+from django.shortcuts import redirect
+from rest_framework.permissions import AllowAny
+
 
 # ------------------ Product ViewSet ------------------
 class ProductViewSet(viewsets.ModelViewSet):
@@ -69,7 +75,7 @@ class EsewaInitiatePaymentView(APIView):
                 "tax_amount": str(tax_amount),
                 "product_service_charge": "0",
                 "product_delivery_charge": "0",
-                "success_url": "http://localhost:3000/payment-success",
+                "success_url": "http://localhost:8000/api/esewa-payment-success/",
                 "failure_url": "http://localhost:3000/payment-failure",
                 "signature": signature,
             })
@@ -84,3 +90,26 @@ class EsewaInitiatePaymentView(APIView):
         message = message.encode("utf-8")
         hmac_sha256 = hmac.new(key, message, hashlib.sha256)
         return base64.b64encode(hmac_sha256.digest()).decode("utf-8")
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EsewaPaymentSuccessView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        oid = request.GET.get("oid")
+        amt = request.GET.get("amt")
+        refId = request.GET.get("refId")
+
+        # try:
+        order = Order.objects.get(transaction_uuid=oid, amount=amt)
+        order.is_paid = True
+        order.payment_ref_id = refId
+        order.status = "Paid"
+        order.save()
+
+        # ✅ Redirect to React app with query params
+        return redirect(f"http://localhost:3000/payment-success?oid={oid}&amt={amt}&refId={refId}")
+
+        # except Order.DoesNotExist:
+        #     return redirect("http://localhost:3000/payment-failure")

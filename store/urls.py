@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProductViewSet, ReviewViewSet, EsewaInitiatePaymentView
+from .views import ProductViewSet, ReviewViewSet, EsewaInitiatePaymentView,EsewaPaymentSuccessView
 
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='products')
@@ -9,4 +9,6 @@ router.register(r'reviews', ReviewViewSet, basename='reviews')
 urlpatterns = [
     path('', include(router.urls)),
     path('esewa/initiate/', EsewaInitiatePaymentView.as_view(), name='esewa-initiate'),
+    path('esewa-initiate-payment/', EsewaInitiatePaymentView.as_view()),
+    path('esewa-payment-success/', EsewaPaymentSuccessView.as_view()),
 ]
