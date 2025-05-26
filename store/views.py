@@ -14,6 +14,8 @@ from django.utils.decorators import method_decorator
 from .models import Order
 from django.shortcuts import redirect
 from rest_framework.permissions import AllowAny
+from decimal import Decimal
+
 
 
 # ------------------ Product ViewSet ------------------
@@ -101,15 +103,58 @@ class EsewaPaymentSuccessView(APIView):
         amt = request.GET.get("amt")
         refId = request.GET.get("refId")
 
-        # try:
-        order = Order.objects.get(transaction_uuid=oid, amount=amt)
-        order.is_paid = True
-        order.payment_ref_id = refId
-        order.status = "Paid"
-        order.save()
+        try:
+            amount_decimal = Decimal(amt)
+            order = Order.objects.get(transaction_uuid=oid, amount=amount_decimal)
+            order.is_paid = True
+            order.payment_ref_id = refId
+            order.status = "Paid"
+            order.save()
 
-        # ✅ Redirect to React app with query params
-        return redirect(f"http://localhost:3000/payment-success?oid={oid}&amt={amt}&refId={refId}")
+            return redirect(f"http://localhost:3000/payment-success?oid={oid}&amt={amt}&refId={refId}")
 
-        # except Order.DoesNotExist:
-        #     return redirect("http://localhost:3000/payment-failure")
+        except Order.DoesNotExist:
+            return redirect("http://localhost:3000/payment-failure")
+        except Exception as e:
+             print(f"Error: {str(e)}")
+             return redirect("http://localhost:3000/payment-failure")
+
+
+
+
+
+class CashOnDeliveryOrderView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            user = request.user
+            product_id = request.data.get("product_id")
+            quantity = int(request.data.get("quantity", 1))
+
+            if not product_id:
+                return Response({"error": "Product ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            product = Product.objects.get(id=product_id)
+            amount = product.price * quantity
+
+            order = Order.objects.create(
+                user=user,
+                product=product,
+                amount=Decimal(amount),
+                transaction_uuid=str(uuid.uuid4()),
+                is_paid=False,  # Cash on delivery
+                status="Pending"
+            )
+
+            return Response({
+                "message": "Order placed successfully with Cash on Delivery.",
+                "order_id": order.id,
+                "amount": str(order.amount),
+                "status": order.status
+            }, status=status.HTTP_201_CREATED)
+
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
