@@ -15,6 +15,7 @@ from .models import Order
 from django.shortcuts import redirect
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
+from .models import Order
 
 
 
@@ -122,39 +123,41 @@ class EsewaPaymentSuccessView(APIView):
 
 
 
-
-class CashOnDeliveryOrderView(APIView):
+class CashOnDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
             user = request.user
-            product_id = request.data.get("product_id")
-            quantity = int(request.data.get("quantity", 1))
+            data = request.data
 
-            if not product_id:
-                return Response({"error": "Product ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+            print("Received data:", data)
+
+            address = data.get("address")
+            product_id = data.get("product_id")
+            amount = data.get("amount")
+
+            if not all([address, product_id, amount]):
+                return Response({"error": "Address, product_id, and amount are required."}, status=status.HTTP_400_BAD_REQUEST)
 
             product = Product.objects.get(id=product_id)
-            amount = product.price * quantity
+            amount_decimal = Decimal(str(amount))
 
             order = Order.objects.create(
                 user=user,
                 product=product,
-                amount=Decimal(amount),
+                amount=amount_decimal,
+                total_price=amount_decimal,
+                address=address,
+                payment_method="Cash on Delivery",
                 transaction_uuid=str(uuid.uuid4()),
-                is_paid=False,  # Cash on delivery
-                status="Pending"
+                status="pending"
             )
 
-            return Response({
-                "message": "Order placed successfully with Cash on Delivery.",
-                "order_id": order.id,
-                "amount": str(order.amount),
-                "status": order.status
-            }, status=status.HTTP_201_CREATED)
+            return Response({"message": "Order placed successfully."}, status=status.HTTP_201_CREATED)
 
         except Product.DoesNotExist:
-            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
