@@ -48,3 +48,15 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.email} - {'Paid' if self.is_paid else 'Unpaid'}"
+    
+    def save(self, *args, **kwargs):
+        # Check if payment status is being changed to paid
+        if self.pk:
+            previous = Order.objects.get(pk=self.pk)
+            if not previous.is_paid and self.is_paid:
+                
+                # Decrease product stock
+                if self.product.stock > 0:
+                    self.product.stock -= 1
+                    self.product.save()
+        super().save(*args, **kwargs)
