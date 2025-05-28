@@ -16,6 +16,8 @@ from django.shortcuts import redirect
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from .models import Order
+from .serializers import OrderSerializer
+
 
 
 
@@ -161,3 +163,11 @@ class CashOnDeliveryView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
