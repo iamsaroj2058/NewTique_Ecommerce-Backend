@@ -17,6 +17,10 @@ from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from .models import Order
 from .serializers import OrderSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action
+
+
 
 
 
@@ -31,6 +35,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         if category_id:
             queryset = queryset.filter(category__id=category_id)
         return queryset
+
+    @action(detail=False, methods=['get'], url_path='stocks')
+    def get_stocks(self, request):
+        ids_param = request.GET.get('ids')
+        if not ids_param:
+            return Response({"error": "Missing ids parameter"}, status=400)
+
+        try:
+            ids = [int(id.strip()) for id in ids_param.split(',') if id.strip().isdigit()]
+            products = Product.objects.filter(id__in=ids)
+            result = [{"id": p.id, "stock": p.stock} for p in products]
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 
 # ------------------ Review ViewSet ------------------
@@ -171,3 +189,19 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by('-created_at')
+    
+
+
+@api_view(['GET'])
+def get_product_stocks(request):
+    ids_param = request.GET.get('ids')
+    if not ids_param:
+        return Response({"error": "Missing ids parameter"}, status=400)
+
+    try:
+        ids = [int(id.strip()) for id in ids_param.split(',') if id.strip().isdigit()]
+        products = Product.objects.filter(id__in=ids)
+        result = [{"id": p.id, "stock": p.stock} for p in products]
+        return Response(result)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
