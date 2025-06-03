@@ -183,13 +183,6 @@ class CashOnDeliveryView(APIView):
 
 
 
-class OrderViewSet(viewsets.ModelViewSet):
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
-    
 
 
 @api_view(['GET'])
@@ -205,3 +198,13 @@ def get_product_stocks(request):
         return Response(result)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+
+        
+class OrderViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+    

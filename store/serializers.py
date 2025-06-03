@@ -30,4 +30,4 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_price', 'address', 'payment_method', 'transaction_uuid',
             'payment_ref_id', 'is_paid', 'status', 'created_at'
         ]
-        read_only_fields = ['user', 'transaction_uuid', 'payment_ref_id', 'is_paid', 'status', 'created_at']
+        read_only_fields = ['user', 'transaction_uuid', 'payment_ref_id', 'is_paid', 'status', 'created_at' ,'quantity']
