@@ -156,18 +156,21 @@ class CashOnDeliveryView(APIView):
             address = data.get("address")
             product_id = data.get("product_id")
             amount = data.get("amount")
+            quantity = int(data.get("quantity", 1))  # ✅ Default to 1 if not provided
 
             if not all([address, product_id, amount]):
                 return Response({"error": "Address, product_id, and amount are required."}, status=status.HTTP_400_BAD_REQUEST)
 
             product = Product.objects.get(id=product_id)
             amount_decimal = Decimal(str(amount))
+            subtotal = amount_decimal * quantity  # ✅ Calculate total price based on quantity
 
             order = Order.objects.create(
                 user=user,
                 product=product,
                 amount=amount_decimal,
-                total_price=amount_decimal,
+                total_price=subtotal,
+                quantity=quantity,  # ✅ Save quantity
                 address=address,
                 payment_method="Cash on Delivery",
                 transaction_uuid=str(uuid.uuid4()),
@@ -180,6 +183,7 @@ class CashOnDeliveryView(APIView):
             return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

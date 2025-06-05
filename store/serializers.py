@@ -27,7 +27,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'user', 'product', 'product_name', 'product_image', 'amount',
-            'total_price', 'address', 'payment_method', 'transaction_uuid',
+            'total_price','quantity', 'address', 'payment_method', 'transaction_uuid',
             'payment_ref_id', 'is_paid', 'status', 'created_at'
         ]
         read_only_fields = ['user', 'transaction_uuid', 'payment_ref_id', 'is_paid', 'status', 'created_at' ,'quantity']
