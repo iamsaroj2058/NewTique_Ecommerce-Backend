@@ -59,7 +59,7 @@ class Order(models.Model):
             if not previous.is_paid and self.is_paid:
                 
                 # Decrease product stock
-                if self.product.stock > 0:
-                    self.product.stock -= 1
+                if self.product.stock >= self.quantity:
+                    self.product.stock -= self.quantity
                     self.product.save()
         super().save(*args, **kwargs)
