@@ -2,27 +2,34 @@
 from django.db import models
 from django.conf import settings
 
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
+
 class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     rating = models.DecimalField(max_digits=3, decimal_places=1)
     stock = models.PositiveIntegerField(default=0)
-    image = models.ImageField(upload_to='products/images', blank=True, null=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-    description = models.TextField(default='No description yet')
+    image = models.ImageField(upload_to="products/images", blank=True, null=True)
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name="products"
+    )
+    description = models.TextField(default="No description yet")
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return self.name
 
+
 class Review(models.Model):
-    product = models.ForeignKey(Product, related_name="reviews", on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, related_name="reviews", on_delete=models.CASCADE
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.IntegerField()
     comment = models.TextField()
@@ -32,11 +39,9 @@ class Review(models.Model):
         return f"Review by {self.user.email} on {self.product.name}"
 
 
-
+# store/models.py
 class Order(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
     address = models.TextField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=50)
@@ -44,22 +49,17 @@ class Order(models.Model):
     payment_ref_id = models.CharField(max_length=100, blank=True, null=True)
     is_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default="Pending")  # Pending, Paid, Failed
-    quantity = models.PositiveIntegerField(default=1)
-
-
+    status = models.CharField(max_length=20, default="Pending")
 
     def __str__(self):
-        return f"Order #{self.id} - {self.user.email} - {'Paid' if self.is_paid else 'Unpaid'}"
-    
-    def save(self, *args, **kwargs):
-        # Check if payment status is being changed to paid
-        if self.pk:
-            previous = Order.objects.get(pk=self.pk)
-            if not previous.is_paid and self.is_paid:
-                
-                # Decrease product stock
-                if self.product.stock >= self.quantity:
-                    self.product.stock -= self.quantity
-                    self.product.save()
-        super().save(*args, **kwargs)
+        return f"Order #{self.id} - {self.user.email}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name} @ {self.price}"
