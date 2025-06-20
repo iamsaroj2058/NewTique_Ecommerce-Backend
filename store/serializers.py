@@ -20,14 +20,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_image = serializers.ImageField(source='product.image', read_only=True)
     price = serializers.DecimalField(source='product.price', read_only=True, max_digits=10, decimal_places=2)
-
+    subtotal = serializers.SerializerMethodField()  # This requires get_subtotal() method
+    
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'product', 'product_name', 'product_image', 'quantity', 'price',
-            'subtotal'
+            'id', 'product', 'product_name', 'product_image', 
+            'quantity', 'price', 'subtotal'
         ]
-        read_only_fields = ['subtotal']
+    
+    # This method MUST be properly indented (outside Meta class)
+    def get_subtotal(self, obj):
+        """Calculate subtotal (quantity × price)"""
+        return obj.quantity * obj.product.price
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
