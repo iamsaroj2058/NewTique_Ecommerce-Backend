@@ -15,14 +15,10 @@ from .models import Order
 from django.shortcuts import redirect
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
-from .models import Order,OrderItem
+from .models import Order, OrderItem
 from .serializers import OrderSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import action
-
-
-
-
 
 
 # ------------------ Product ViewSet ------------------
@@ -31,19 +27,21 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Product.objects.all()
-        category_id = self.request.query_params.get('category_id')
+        category_id = self.request.query_params.get("category_id")
         if category_id:
             queryset = queryset.filter(category__id=category_id)
         return queryset
 
-    @action(detail=False, methods=['get'], url_path='stocks')
+    @action(detail=False, methods=["get"], url_path="stocks")
     def get_stocks(self, request):
-        ids_param = request.GET.get('ids')
+        ids_param = request.GET.get("ids")
         if not ids_param:
             return Response({"error": "Missing ids parameter"}, status=400)
 
         try:
-            ids = [int(id.strip()) for id in ids_param.split(',') if id.strip().isdigit()]
+            ids = [
+                int(id.strip()) for id in ids_param.split(",") if id.strip().isdigit()
+            ]
             products = Product.objects.filter(id__in=ids)
             result = [{"id": p.id, "stock": p.stock} for p in products]
             return Response(result)
@@ -58,13 +56,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        product_id = self.request.query_params.get('product')
+        queryset = super().get_queryset()
+        product_id = self.request.query_params.get("product")
         if product_id:
-            return Review.objects.filter(product_id=product_id)
-        return Review.objects.all()
+            queryset = queryset.filter(product_id=product_id)
+        return queryset.order_by("-created_at")  # Newest first
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def get_permissions(self):
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [IsAuthenticated(), IsReviewAuthor()]
+        return super().get_permissions()
+
+
+class IsReviewAuthor(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
 
 
 # ------------------ Esewa Payment Initiation ------------------
@@ -91,17 +100,19 @@ class EsewaInitiatePaymentView(APIView):
 
             signature = self.generate_signature(payload, secret_key)
 
-            return Response({
-                "esewa_url": "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
-                **payload,
-                "amount": str(amount),
-                "tax_amount": str(tax_amount),
-                "product_service_charge": "0",
-                "product_delivery_charge": "0",
-                "success_url": "http://localhost:8000/api/esewa-payment-success/",
-                "failure_url": "http://localhost:3000/payment-failure",
-                "signature": signature,
-            })
+            return Response(
+                {
+                    "esewa_url": "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
+                    **payload,
+                    "amount": str(amount),
+                    "tax_amount": str(tax_amount),
+                    "product_service_charge": "0",
+                    "product_delivery_charge": "0",
+                    "success_url": "http://localhost:8000/api/esewa-payment-success/",
+                    "failure_url": "http://localhost:3000/payment-failure",
+                    "signature": signature,
+                }
+            )
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,7 +126,7 @@ class EsewaInitiatePaymentView(APIView):
         return base64.b64encode(hmac_sha256.digest()).decode("utf-8")
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class EsewaPaymentSuccessView(APIView):
     permission_classes = [AllowAny]
 
@@ -132,15 +143,15 @@ class EsewaPaymentSuccessView(APIView):
             order.status = "Paid"
             order.save()
 
-            return redirect(f"http://localhost:3000/payment-success?oid={oid}&amt={amt}&refId={refId}")
+            return redirect(
+                f"http://localhost:3000/payment-success?oid={oid}&amt={amt}&refId={refId}"
+            )
 
         except Order.DoesNotExist:
             return redirect("http://localhost:3000/payment-failure")
         except Exception as e:
-             print(f"Error: {str(e)}")
-             return redirect("http://localhost:3000/payment-failure")
-
-
+            print(f"Error: {str(e)}")
+            return redirect("http://localhost:3000/payment-failure")
 
 
 # store/views.py
@@ -153,7 +164,7 @@ class CashOnDeliveryView(APIView):
             data = request.data
 
             # Validate required fields
-            required_fields = ['address', 'products', 'payment_method']
+            required_fields = ["address", "products", "payment_method"]
             for field in required_fields:
                 if field not in data:
                     return Response({"error": f"{field} is required"}, status=400)
@@ -161,76 +172,77 @@ class CashOnDeliveryView(APIView):
             # Create order
             order = Order.objects.create(
                 user=user,
-                address=data['address'],
+                address=data["address"],
                 total_price=0,  # Will be calculated below
-                payment_method=data['payment_method'],
+                payment_method=data["payment_method"],
                 transaction_uuid=str(uuid.uuid4()),
-                status="Pending"
+                status="Pending",
             )
 
-            total_amount = Decimal('0')
-            
+            total_amount = Decimal("0")
+
             # Process each product
-            for product_data in data['products']:
+            for product_data in data["products"]:
                 try:
-                    product = Product.objects.get(id=product_data['id'])
-                    
+                    product = Product.objects.get(id=product_data["id"])
+
                     # Validate stock
-                    if product.stock < product_data['quantity']:
+                    if product.stock < product_data["quantity"]:
                         order.delete()
                         return Response(
                             {"error": f"Not enough stock for {product.name}"},
-                            status=400
+                            status=400,
                         )
-                    
+
                     # Create order item
                     OrderItem.objects.create(
                         order=order,
                         product=product,
-                        quantity=product_data['quantity'],
-                        price=product.price
+                        quantity=product_data["quantity"],
+                        price=product.price,
                     )
-                    
+
                     # Update total
-                    total_amount += Decimal(str(product.price)) * product_data['quantity']
-                    
+                    total_amount += (
+                        Decimal(str(product.price)) * product_data["quantity"]
+                    )
+
                     # Reduce stock (only after payment would normally happen)
                     # product.stock -= product_data['quantity']
                     # product.save()
-                    
+
                 except Product.DoesNotExist:
                     order.delete()
                     return Response(
                         {"error": f"Product with ID {product_data['id']} not found"},
-                        status=404
+                        status=404,
                     )
 
             # Update order total
             order.total_price = total_amount
             order.save()
 
-            return Response({
-                "message": "Order created successfully",
-                "order_id": order.id,
-                "total_amount": total_amount
-            }, status=201)
+            return Response(
+                {
+                    "message": "Order created successfully",
+                    "order_id": order.id,
+                    "total_amount": total_amount,
+                },
+                status=201,
+            )
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
 
-
-
-
-
-@api_view(['GET'])
+@api_view(["GET"])
 def get_product_stocks(request):
-    ids_param = request.GET.get('ids')
+    ids_param = request.GET.get("ids")
     if not ids_param:
         return Response({"error": "Missing ids parameter"}, status=400)
 
     try:
-        ids = [int(id.strip()) for id in ids_param.split(',') if id.strip().isdigit()]
+        ids = [int(id.strip()) for id in ids_param.split(",") if id.strip().isdigit()]
         products = Product.objects.filter(id__in=ids)
         result = [{"id": p.id, "stock": p.stock} for p in products]
         return Response(result)
@@ -238,11 +250,9 @@ def get_product_stocks(request):
         return Response({"error": str(e)}, status=500)
 
 
-        
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
-    
+        return Order.objects.filter(user=self.request.user).order_by("-created_at")

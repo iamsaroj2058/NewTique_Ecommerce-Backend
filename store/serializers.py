@@ -1,20 +1,37 @@
 from rest_framework import serializers
+from django.db.models import Avg, Count
 from .models import Product, Category, Review, Order, OrderItem
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    reviews_count = serializers.IntegerField(read_only=True)
+    average_rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Product
         fields = '__all__'
+        extra_fields = ['reviews_count', 'average_rating']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['reviews_count'] = instance.reviews.count()
+        representation['average_rating'] = instance.reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        return representation
 
 class ReviewSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
 
     class Meta:
         model = Review
-        fields = ['id', 'product', 'user', 'user_email', 'rating', 'comment', 'created_at']
-        read_only_fields = ['user', 'user_email', 'created_at']
+        fields = ['id', 'product', 'user', 'user_email', 'user_name', 'rating', 'comment', 'created_at']
+        read_only_fields = ['user', 'user_email', 'user_name', 'created_at']
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
