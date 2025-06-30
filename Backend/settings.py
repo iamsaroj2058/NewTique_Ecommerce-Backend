@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "account",
     'knox', 
     'django_rest_passwordreset',
+    'recommendations', 
 ]
 
 MIDDLEWARE = [
