@@ -4,7 +4,7 @@ from store.serializers import ProductSerializer
 from .models import UserProductInteraction
 
 class UserInteractionSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product = ProductSerializer(read_only=True,many=True)
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(),
         source='product',
@@ -28,3 +28,4 @@ class RecommendationResponseSerializer(serializers.Serializer):
     recommendations = ProductSerializer(many=True)
     algorithm = serializers.CharField()
     count = serializers.IntegerField()
+

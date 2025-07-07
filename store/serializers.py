@@ -6,12 +6,22 @@ class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     reviews_count = serializers.IntegerField(read_only=True)
     average_rating = serializers.FloatField(read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = '__all__'
         extra_fields = ['reviews_count', 'average_rating']
 
+    def get_image(self, obj):
+        request = self.context.get('request')
+        
+        if obj.image and request:
+            url= request.build_absolute_uri(obj.image.url)
+        else:
+            url= obj.image.url if obj.image else None
+        return url
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['reviews_count'] = instance.reviews.count()
