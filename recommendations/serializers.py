@@ -25,7 +25,8 @@ class UserInteractionSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'created_at']
 
 class RecommendationResponseSerializer(serializers.Serializer):
-    recommendations = ProductSerializer(many=True)
-    algorithm = serializers.CharField()
+    success = serializers.BooleanField()
     count = serializers.IntegerField()
+    recommendations = ProductSerializer(many=True)
+    error = serializers.CharField(required=False)
 

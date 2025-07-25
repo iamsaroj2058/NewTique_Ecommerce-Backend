@@ -5,47 +5,54 @@ from store.models import Product
 from .services import RecommendationService
 from .serializers import UserInteractionSerializer, RecommendationResponseSerializer
 from store.serializers import ProductSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class RecommendationView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        product_id = request.query_params.get("product_id")
-        n = min(int(request.query_params.get("n", 5)), 20)  # Limit to 20 max
-        
-        product = None
-        if product_id:
-            try:
-                product = Product.objects.get(id=product_id)
-            except Product.DoesNotExist:
-                return Response(
-                    {"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND
-                )
-
-        service = RecommendationService()
-        products = service.get_recommendations(
-            request.user, product=product, n=n
-        )
-        
-        # Serialize with additional recommendation metadata
-        algorithm = "hybrid"
-        if not request.user.is_authenticated and product:
-            algorithm = "content-based"
-        elif not product:
-            algorithm = "collaborative"
+        try:
+            # Validate parameters
+            product_id = request.query_params.get("product_id")
+            n = min(max(1, int(request.query_params.get("n", 5))), 5)  # Force 1-5
             
-        response_data = {
-            "recommendations": products,
-            "algorithm": algorithm,
-            "count": len(products),
-            "source": "recommendation-engine"
-        }
+            product = None
+            if product_id:
+                product = Product.objects.get(id=product_id)
 
-        serializer = RecommendationResponseSerializer(
-            response_data,
-            context={'request': request}
-        )
-        return Response(serializer.data)
+            # Get recommendations
+            service = RecommendationService()
+            products = service.get_recommendations(request.user, product, n)
+            
+            # Final verification
+            if products.count() > n:
+                logger.error(f"Recommendation overflow: {products.count()} > {n}")
+                products = products[:n]
+            
+            # Prepare response
+            return Response({
+                "success": True,
+                "count": products.count(),
+                "recommendations": ProductSerializer(
+                    products,
+                    many=True,
+                    context={'request': request}
+                ).data
+            })
+            
+        except Product.DoesNotExist:
+            return Response(
+                {"success": False, "error": "Product not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Recommendation error: {e}")
+            return Response(
+                {"success": False, "error": "Internal server error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class UserInteractionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
