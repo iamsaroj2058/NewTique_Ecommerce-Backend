@@ -11,8 +11,8 @@ class RecommendationView(APIView):
 
     def get(self, request):
         product_id = request.query_params.get("product_id")
-        n = int(request.query_params.get("n", 5))
-
+        n = min(int(request.query_params.get("n", 5)), 20)  # Limit to 20 max
+        
         product = None
         if product_id:
             try:
@@ -23,21 +23,29 @@ class RecommendationView(APIView):
                 )
 
         service = RecommendationService()
-        recommendations = service.get_recommendations(
+        products = service.get_recommendations(
             request.user, product=product, n=n
         )
         
-
+        # Serialize with additional recommendation metadata
+        algorithm = "hybrid"
+        if not request.user.is_authenticated and product:
+            algorithm = "content-based"
+        elif not product:
+            algorithm = "collaborative"
+            
         response_data = {
-            "recommendations": recommendations,
-            "algorithm": "hybrid",
-            "count": len(recommendations),
+            "recommendations": products,
+            "algorithm": algorithm,
+            "count": len(products),
+            "source": "recommendation-engine"
         }
-        # raise Exception(response_data)
 
-        serializer = RecommendationResponseSerializer(response_data,context={'request':request})
+        serializer = RecommendationResponseSerializer(
+            response_data,
+            context={'request': request}
+        )
         return Response(serializer.data)
-
 
 class UserInteractionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
