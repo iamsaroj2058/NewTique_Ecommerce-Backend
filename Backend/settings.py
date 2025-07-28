@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'knox', 
     'django_rest_passwordreset',
     'recommendations', 
+    'pages',
+    'django_ckeditor_5',
 ]
 
 MIDDLEWARE = [
@@ -177,3 +179,47 @@ REST_FRAMEWORK = {
 ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
 ESEWA_MERCHANT_CODE = "EPAYTEST"
 
+
+
+
+# Add near your other static files settings
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Add this line
+
+
+# Add these at the bottom of settings.py
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': ['heading', '|', 'bold', 'italic', 'link',
+                    'bulletedList', 'numberedList', 'blockQuote'],
+    },
+    'extends': {
+        'blockToolbar': [
+            'paragraph', 'heading1', 'heading2', 'heading3',
+            '|',
+            'bulletedList', 'numberedList',
+            '|',
+            'blockQuote',
+        ],
+        'toolbar': ['heading', '|', 'outdent', 'indent', '|',
+                  'bold', 'italic', 'link', 'underline', 'strikethrough',
+                  'code', 'subscript', 'superscript', 'highlight', '|',
+                  'bulletedList', 'numberedList', 'todoList', '|',
+                  'blockQuote', 'insertImage', '|',
+                  'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
+                  'alignment', '|',
+                  'codeBlock', '|',
+                  'undo', 'redo'],
+        'image': {
+            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft',
+                      'imageStyle:alignRight', 'imageStyle:alignCenter', 'imageStyle:side', '|'],
+            'styles': [
+                'full',
+                'side',
+                'alignLeft',
+                'alignRight',
+                'alignCenter',
+            ]
+        }
+    }
+}

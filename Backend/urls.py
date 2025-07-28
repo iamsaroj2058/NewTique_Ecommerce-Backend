@@ -35,6 +35,8 @@ urlpatterns = [
     path("api/", include("account.api.urls")),
     path('api/', include('store.urls')),
     path('api/recommendations/', include('recommendations.urls')),
+    path('api/', include('pages.urls')),
+
 ]
 
 if settings.DEBUG:
