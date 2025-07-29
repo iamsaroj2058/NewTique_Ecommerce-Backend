@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.db.models import Avg, Count
 from .models import Product, Category, Review, Order, OrderItem
+from .models import Cart, CartItem, Product
+
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
@@ -86,3 +88,20 @@ class OrderSerializer(serializers.ModelSerializer):
             OrderItem.objects.create(order=order, **item_data)
             
         return order
+    
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    product_name = serializers.ReadOnlyField(source='product.name')
+    product_image = serializers.ImageField(source='product.image', read_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'product_name', 'product_image', 'quantity', 'price']
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True)
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'created_at', 'updated_at', 'items']
