@@ -19,6 +19,9 @@ from .models import Order, OrderItem
 from .serializers import OrderSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import action
+from .models import Cart, CartItem
+from .serializers import CartSerializer, CartItemSerializer
+
 
 
 # ------------------ Product ViewSet ------------------
@@ -256,3 +259,44 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+
+class CartViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        serializer = CartSerializer(cart)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def add_item(self, request):
+        product_id = request.data.get('product_id')
+        quantity = request.data.get('quantity')
+        price = request.data.get('price')  # Must be passed from frontend
+
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id, defaults={'quantity': quantity, 'price': price})
+        if not created:
+            item.quantity += quantity
+            item.save()
+
+        return Response({"success": "Item added to cart"})
+
+    @action(detail=False, methods=['post'])
+    def update_quantity(self, request):
+        item_id = request.data.get("item_id")
+        quantity = request.data.get("quantity")
+        item = CartItem.objects.get(id=item_id, cart__user=request.user)
+        item.quantity = quantity
+        item.save()
+        return Response({"success": "Quantity updated"})
+
+    @action(detail=False, methods=['delete'])
+    def remove_item(self, request):
+        item_id = request.query_params.get("item_id")
+        CartItem.objects.get(id=item_id, cart__user=request.user).delete()
+        return Response({"success": "Item removed"})
+
+

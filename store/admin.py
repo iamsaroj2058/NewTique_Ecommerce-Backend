@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Product, Category, Review, Order, OrderItem  # Add OrderItem to imports
+from .models import Cart, CartItem
 
 # Register your models here.
 @admin.register(Product)
@@ -37,3 +38,7 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_display = ('order', 'product', 'quantity', 'price')
     list_filter = ('product',)
     search_fields = ('order__transaction_uuid', 'product__name')
+
+
+admin.site.register(Cart)
+admin.site.register(CartItem)
