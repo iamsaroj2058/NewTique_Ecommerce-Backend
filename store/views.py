@@ -21,6 +21,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import action
 from .models import Cart, CartItem
 from .serializers import CartSerializer, CartItemSerializer
+from store.models import Product
+
 
 
 
@@ -183,12 +185,16 @@ class CashOnDeliveryView(APIView):
             )
 
             total_amount = Decimal("0")
+          
+
 
             # Process each product
+            
             for product_data in data["products"]:
+                print("Incoming request data:", product_data)
                 try:
                     product = Product.objects.get(id=product_data["id"])
-
+                    print(product ,"this is product")
                     # Validate stock
                     if product.stock < product_data["quantity"]:
                         order.delete()
@@ -217,7 +223,9 @@ class CashOnDeliveryView(APIView):
                 except Product.DoesNotExist:
                     order.delete()
                     return Response(
-                        {"error": f"Product with ID {product_data['id']} not found"},
+                        {"error": f"Product with ID {product_data['id']} not found"
+                        },
+                        
                         status=404,
                     )
 
