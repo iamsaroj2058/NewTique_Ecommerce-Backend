@@ -14,5 +14,7 @@ urlpatterns = router.urls
 # Then extend with custom API views
 urlpatterns += [
     path('verify-token/', VerifyTokenView.as_view(), name='verify-token'),
-    path('change-password/', ChangePasswordView.as_view(), name='change-password'),  # ✅ Add this line
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'), 
+    path('user-profile/', UserProfileView.as_view(), name='user-profile'),
+
 ]
