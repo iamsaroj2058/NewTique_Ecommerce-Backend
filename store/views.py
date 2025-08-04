@@ -19,6 +19,9 @@ from .models import Order, OrderItem
 from .serializers import OrderSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import action
+from .models import Cart, CartItem
+from .serializers import CartSerializer, CartItemSerializer
+
 
 
 # ------------------ Product ViewSet ------------------
@@ -155,6 +158,7 @@ class EsewaPaymentSuccessView(APIView):
 
 
 # store/views.py
+
 class CashOnDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -181,12 +185,14 @@ class CashOnDeliveryView(APIView):
 
             total_amount = Decimal("0")
 
-            # Process each product
+            # Store products temporarily for stock update later
+            valid_products = []
+
+            # First pass: validate products and stock
             for product_data in data["products"]:
                 try:
                     product = Product.objects.get(id=product_data["id"])
 
-                    # Validate stock
                     if product.stock < product_data["quantity"]:
                         order.delete()
                         return Response(
@@ -194,22 +200,7 @@ class CashOnDeliveryView(APIView):
                             status=400,
                         )
 
-                    # Create order item
-                    OrderItem.objects.create(
-                        order=order,
-                        product=product,
-                        quantity=product_data["quantity"],
-                        price=product.price,
-                    )
-
-                    # Update total
-                    total_amount += (
-                        Decimal(str(product.price)) * product_data["quantity"]
-                    )
-
-                    # Reduce stock (only after payment would normally happen)
-                    # product.stock -= product_data['quantity']
-                    # product.save()
+                    valid_products.append((product, product_data["quantity"]))
 
                 except Product.DoesNotExist:
                     order.delete()
@@ -218,7 +209,22 @@ class CashOnDeliveryView(APIView):
                         status=404,
                     )
 
-            # Update order total
+            # Second pass: create order items and reduce stock
+            for product, quantity in valid_products:
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    price=product.price,
+                )
+
+                total_amount += Decimal(str(product.price)) * quantity
+
+                # ✅ Reduce stock
+                product.stock -= quantity
+                product.save()
+
+            # Update total price
             order.total_price = total_amount
             order.save()
 
@@ -256,3 +262,44 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+
+class CartViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        serializer = CartSerializer(cart)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def add_item(self, request):
+        product_id = request.data.get('product_id')
+        quantity = request.data.get('quantity')
+        price = request.data.get('price')  # Must be passed from frontend
+
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id, defaults={'quantity': quantity, 'price': price})
+        if not created:
+            item.quantity += quantity
+            item.save()
+
+        return Response({"success": "Item added to cart"})
+
+    @action(detail=False, methods=['post'])
+    def update_quantity(self, request):
+        item_id = request.data.get("item_id")
+        quantity = request.data.get("quantity")
+        item = CartItem.objects.get(id=item_id, cart__user=request.user)
+        item.quantity = quantity
+        item.save()
+        return Response({"success": "Quantity updated"})
+
+    @action(detail=False, methods=['delete'])
+    def remove_item(self, request):
+        item_id = request.query_params.get("item_id")
+        CartItem.objects.get(id=item_id, cart__user=request.user).delete()
+        return Response({"success": "Item removed"})
+
+
