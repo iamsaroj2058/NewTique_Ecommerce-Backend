@@ -188,7 +188,7 @@ class CashOnDeliveryView(APIView):
             total_amount = Decimal("0")
           
 
-
+            valid_products = []
             # Process each product
             for product_data in data["products"]:
                 print("Incoming request data:", product_data)

@@ -16,7 +16,7 @@ def track_review(sender, instance, created, **kwargs):
 @receiver(post_save, sender=OrderItem)
 def track_purchase(sender, instance, created, **kwargs):
     if created:
-        UserProductInteraction.objects.create(
+        UserProductInteraction.objects.get_or_create(
             user=instance.order.user,
             product=instance.product,
             interaction_type='purchase',
