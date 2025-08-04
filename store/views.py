@@ -161,6 +161,8 @@ class EsewaPaymentSuccessView(APIView):
 
 # store/views.py
 
+from store.models import CartItem, Cart  # Make sure CartItem is imported
+
 class CashOnDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -179,23 +181,19 @@ class CashOnDeliveryView(APIView):
             order = Order.objects.create(
                 user=user,
                 address=data["address"],
-                total_price=0,  # Will be calculated below
+                total_price=0,
                 payment_method=data["payment_method"],
                 transaction_uuid=str(uuid.uuid4()),
                 status="Pending",
             )
 
             total_amount = Decimal("0")
-          
-
             valid_products = []
-            # Process each product
+
             for product_data in data["products"]:
-                print("Incoming request data:", product_data)
                 try:
                     product = Product.objects.get(id=product_data["id"])
 
-                    # Validate stock
                     if product.stock < product_data["quantity"]:
                         order.delete()
                         return Response(
@@ -208,9 +206,7 @@ class CashOnDeliveryView(APIView):
                 except Product.DoesNotExist:
                     order.delete()
                     return Response(
-                        {"error": f"Product with ID {product_data['id']} not found"
-                        },
-                        
+                        {"error": f"Product with ID {product_data['id']} not found"},
                         status=404,
                     )
 
@@ -225,13 +221,16 @@ class CashOnDeliveryView(APIView):
 
                 total_amount += Decimal(str(product.price)) * quantity
 
-                # ✅ Reduce stock
                 product.stock -= quantity
                 product.save()
 
-            # Update total price
+            # Update order with total
             order.total_price = total_amount
             order.save()
+
+            # ✅ Remove items from user's cart that were in the order
+            for product, _ in valid_products:
+                CartItem.objects.filter(cart__user=user, product=product).delete()
 
             return Response(
                 {
@@ -244,6 +243,7 @@ class CashOnDeliveryView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
 
 @api_view(["GET"])
