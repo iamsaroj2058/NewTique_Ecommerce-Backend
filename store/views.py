@@ -158,6 +158,7 @@ class EsewaPaymentSuccessView(APIView):
 
 
 # store/views.py
+
 class CashOnDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -184,12 +185,14 @@ class CashOnDeliveryView(APIView):
 
             total_amount = Decimal("0")
 
-            # Process each product
+            # Store products temporarily for stock update later
+            valid_products = []
+
+            # First pass: validate products and stock
             for product_data in data["products"]:
                 try:
                     product = Product.objects.get(id=product_data["id"])
 
-                    # Validate stock
                     if product.stock < product_data["quantity"]:
                         order.delete()
                         return Response(
@@ -197,22 +200,7 @@ class CashOnDeliveryView(APIView):
                             status=400,
                         )
 
-                    # Create order item
-                    OrderItem.objects.create(
-                        order=order,
-                        product=product,
-                        quantity=product_data["quantity"],
-                        price=product.price,
-                    )
-
-                    # Update total
-                    total_amount += (
-                        Decimal(str(product.price)) * product_data["quantity"]
-                    )
-
-                    # Reduce stock (only after payment would normally happen)
-                    # product.stock -= product_data['quantity']
-                    # product.save()
+                    valid_products.append((product, product_data["quantity"]))
 
                 except Product.DoesNotExist:
                     order.delete()
@@ -221,7 +209,22 @@ class CashOnDeliveryView(APIView):
                         status=404,
                     )
 
-            # Update order total
+            # Second pass: create order items and reduce stock
+            for product, quantity in valid_products:
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    price=product.price,
+                )
+
+                total_amount += Decimal(str(product.price)) * quantity
+
+                # ✅ Reduce stock
+                product.stock -= quantity
+                product.save()
+
+            # Update total price
             order.total_price = total_amount
             order.save()
 
