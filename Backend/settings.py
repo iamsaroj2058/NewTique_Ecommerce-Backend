@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     "account",
     'knox', 
     'django_rest_passwordreset',
-    'recommendations', 
+    # 'recommendations', 
     'pages',
     'django_ckeditor_5',
 ]
